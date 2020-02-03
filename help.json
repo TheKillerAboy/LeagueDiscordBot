@@ -1,0 +1,92 @@
+[
+  {
+    "cmd": ".lolsetinfo",
+    "format": ".lolsetinfo <League Username>",
+    "purpose": "set information critical to my other commands"
+  },
+  {
+    "cmd": ".lolhelp",
+    "format": ".lolhelp",
+    "purpose": "shows all commands I can do"
+  },
+  {
+    "cmd": ".lolprofile",
+    "format": ".lolprofile <League Username/Discord Tag>(optional)",
+    "purpose": "show stats of the user, leaving out everything will show stats of yourself. Make sure to have set up you info with .lolsetinfo"
+  },
+  {
+    "cmd": ".lolprofileplus",
+    "format": ".lolprofileplus <Data Amount> <League Username/Discord Tag>(optional)",
+    "purpose": "same as .lolprofile except the data collection amount is custom"
+  },
+  {
+    "cmd": ".lolprofilefull",
+    "format": ".lolprofilefull <League Username/Discord Tag>(optional)",
+    "purpose": "same as .lolprofile except the data collection amount is custom"
+  },
+  {
+    "cmd": ".lolchampion",
+    "format": ".lolchampion <Champion Name no ' and not spaces> <League Username/Discord Tag>(optional)",
+    "purpose": "show stats of the user's champion, Name/Tag same effect as .lolprofile"
+  },
+  {
+    "cmd": ".lolchampionplus",
+    "format": ".lolchampionplus <Data Amount> <Champion Name no ' and not spaces> <League Username/Discord Tag>(optional)",
+    "purpose": "same as .lolchampion except the data collection amount is custom"
+  },
+  {
+    "cmd": ".lolchampionfull",
+    "format": ".lolchampionfull <Champion Name no ' and no spaces> <League Username/Discord Tag>(optional)",
+    "purpose": "same as .lolchampionfull except the data collection is maximum"
+  },
+  {
+    "cmd": ".lollivematch",
+    "format": ".lollivematch <League Username/Discord Tag>(optional)",
+    "purpose": "shows stats of all people in the current live match of user, Name/Tag same effect as .lolprofile"
+  },
+  {
+    "cmd": ".lollivematchplus",
+    "format": ".lollivematchplus <League Username/Discord Tag>(optional)",
+    "purpose": "same as .lollivematch except the data collection amount is custom for users in match"
+  },
+  {
+    "cmd": ".lolwasted",
+    "format": ".lolwasted <League Username/Discord Tag>(optional)",
+    "purpose": "show how many hours a person has played league"
+  },
+  {
+    "cmd": ".lolchampions",
+    "format": ".lolchampions <League Username/Discord Tag>(optional)",
+    "purpose": "show the highest lvl champs for n user"
+  },
+  {
+    "cmd": ".lolchampionsfull",
+    "format": ".lolchampionsfull <League Username/Discord Tag>(optional)",
+    "purpose": "same as .lolchampionsfull except the data collection is maximum"
+  },
+  {
+    "cmd": ".lolchampionsplus",
+    "format": ".lolchampionsplus <League Username/Discord Tag>(optional)",
+    "purpose": "same as .lolchampionsplus except the data collection amount is custom for users in match"
+  },
+  {
+    "cmd": ".lolchampionweak",
+    "format": ".lolchampionweak <Champion Name no ' and no spaces> <Champion Name no ' and no spaces>(optional)",
+    "purpose": "shows other champions this champion is weak against, optional champ can be used to show direct relation"
+  },
+  {
+    "cmd": ".lolchampionstrong",
+    "format": ".lolchampionstrong <Champion Name no ' and no spaces> <Champion Name no ' and no spaces>(optional)",
+    "purpose": "shows other champions this champion is strong against, optional champ can be used to show direct relation"
+  },
+  {
+    "cmd": ".lolchampionweakpos",
+    "format": ".lolchampionweakpos <Lane> <Champion Name no ' and no spaces> <Champion Name no ' and no spaces>(optional)",
+    "purpose": "same as .lolchampionweak, except a lane can be chosen. The lanes are jungle, middle, bottom, top and support"
+  },
+  {
+    "cmd": ".lolchampionstrongpos",
+    "format": ".lolchampionstrongpos <Lane> <Champion Name no ' and no spaces> <Champion Name no ' and no spaces>(optional)",
+    "purpose": "same as .lolchampionstrong, except a lane can be chosen. The lanes are jungle, middle, bottom, top and support"
+  }
+]
