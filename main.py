@@ -114,7 +114,14 @@ async def lolchampionstrongpos(ctx):
 @reload_method()
 async def lolminerelationdata(ctx):
     pass
+@client.command(pass_context=True)
+@reload_method()
+async def lolminerelationdatasingle(ctx):
+    pass
 
+async def data_mine_all_relation_regualar():
+    while True:
+        liveCommands.lol
 
 @client.event
 async def on_ready():
@@ -140,8 +147,11 @@ def import_all_routes():
         if ext == '.py':
             import_module_all(f'routes.{file}')
 
+def flask_server_setup():
+    socketio.run(app,**{"host":"192.168.2.12","port":8445})
+
 import_all_routes()
 
-appthread = Thread(target=socketio.run,args=(app,),kwargs={"host":"192.168.2.12","port":8445})
+appthread = Thread(target=flask_server_setup)
 appthread.start()
 client.run(TOKEN)

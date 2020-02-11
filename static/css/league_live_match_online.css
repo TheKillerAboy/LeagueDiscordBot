@@ -1,0 +1,159 @@
+body{
+    padding: 0;
+    margin: 0;
+    --panel-blue:#253340;
+    --background-blue:#0e1419;
+    --team-blue:#8be9f6;
+    --team-red:#ff79c6;
+    --text-grey:#a4a9ab;
+    --text-white:#ffffff;
+    --purple-light:#6272a4;
+    --purple-dark:#574473;
+    background-color: var(--background-blue);
+    font-family: 'Ubuntu', sans-serif;
+}
+.champion-card{
+    display: inline-block;
+    background-color: var(--panel-blue);
+    width: auto;
+    height: auto;
+    overflow: auto;
+    position: relative;
+    padding: 5px;
+    margin: 0;
+    --img-size:80px;
+}
+.champion-card>.header>.pfp>img{
+    width: var(--img-size);
+}
+.champion-card>.header>.pfp{
+    display: inline-block;
+}
+
+.cover-border{
+    display: inline-block;
+    left: var(--img-size);
+    right: 0;
+    position: absolute;
+}
+.cover-border>.cover-border-left{
+    text-align: left;
+    display: inline-block;
+}
+.cover-border>.cover-border-left>*{
+    margin: 0 5px 5px 5px;
+}
+.cover-border>.cover-border-right>*{
+    margin: 0px 5px 0 5px;
+}
+.cover-border>.cover-border-right{
+    float: right;
+    width: var(--img-size);
+}
+.cover-border>.cover-border-right>*{
+    text-align: right;
+}
+.champion-card>.header{
+    position: relative;
+    width: 280px;
+}
+.field-row>.field{
+    padding: 5px 0;
+}
+.field-row>.field-left{
+    float: left
+}
+.field-row>.field-right{
+    float: right;
+    text-align: right;
+}
+.cover-skills>.champion-skill>img{
+    width: 35px;
+}
+.cover-skills>.champion-skill>img{
+    margin: 5px -5px 0 0;
+}
+.cover-skills{
+    position: relative;
+}
+.field-row>.field-clear{
+    clear: both;
+}
+.field-title{
+    margin: 0 0 5px 0;
+}
+.champion-pfp>img{
+    width: 80px;
+}
+.champion-pfp{
+    display: inline-block;
+}
+.team{
+      margin: 0 auto;
+/*  width: 1469px;*/
+  padding: 10px;
+    width: auto;
+    position: relative;
+}
+.team-cover{
+    position: relative;
+    width: auto;
+}
+#teams{
+    position: relative;
+}
+.footer-cover>.footer{
+    position: relative;
+}
+/*
+#team-red{
+    background-color: var(--team-red)
+}
+#team-blue{
+    background-color: var(--team-blue)
+}
+*/
+.footer-cover{
+    position: absolute;
+    bottom: 0;
+    width: 270px;
+    padding: 0 0 5px 0;
+}
+.footer-cover-disabled{
+    position: relative;
+    bottom: none;
+    padding: 0;
+}
+.white-font{
+    color: var(--text-white)
+}
+.grey-font{
+    color: var(--text-grey)
+}
+.loading-bar{
+    position: relative;
+    height: 7px;
+}
+.loading-bar>*{
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    margin: 5px 0 0 0;
+}
+.loading-bar-bottom{
+    background-color: var(--purple-light);
+}
+.loading-bar-top{
+    background-color: var(--purple-dark);
+}
+.team-color-tab{
+    width: 100%;
+    height: 5px;
+    margin: 5px 0;
+}
+#team-red>.team-color-tab{
+    background-color: var(--team-red)
+}
+#team-blue>.team-color-tab{
+    background-color: var(--team-blue)
+}

@@ -114,7 +114,7 @@ async def league_player_embed_data_get(DATABASE,username, gateway, channel, queu
     embed.remove_field(0)
     await message.edit(embed=embed)
 
-async def league_champion_embed_data_get(DATABASE,username, gateway, channel,championId, colour = discord.Colour.light_grey(), queue = 20, api_stack = 5):
+async def league_champion_embed_data_get(data,fullparti,DATABASE,username, gateway, channel,championId, colour = discord.Colour.light_grey(), queue = 20, api_stack = 5):
     parti = {'summonerName':username}
     parti['riotuser'] = RiotDataMine.RiotUser(DATABASE, parti['summonerName'], gateway)
     parti['championId'] = championId
@@ -124,7 +124,7 @@ async def league_champion_embed_data_get(DATABASE,username, gateway, channel,cha
                                    colour=colour)
     parti['embed'].set_thumbnail(url=f"http://ddragon.leagueoflegends.com/cdn/10.2.1/img/champion/{GLOBALS.STATICDATA['CHAMPIONS'][parti['championId']]['id']}.png")
     parti['message'] = await channel.send(embed=parti['embed'])
-    await league_livegame_embed_data_get__update_parti(parti, queue=queue,api_stack=api_stack)
+    await league_livegame_embed_data_get__update_parti(data,fullparti,parti, queue=queue,api_stack=api_stack)
 
 async def league_livegame_embed_data_get(client,DATABASE,username, gateway, channel,queue = 20, api_stack = 5):
     riotuser = RiotDataMine.RiotUser(DATABASE, username, gateway)
@@ -133,7 +133,7 @@ async def league_livegame_embed_data_get(client,DATABASE,username, gateway, chan
         await channel.send(f'{username} | {gateway} isn\'t currently in a match')
         return
     for parti in data:
-        client.loop.create_task(league_champion_embed_data_get(DATABASE,parti['summonerName'], gateway, channel,parti['championId'],colour=discord.Colour.red() if parti['team'] == 'red' else discord.Colour.blue(),queue=queue,api_stack=api_stack))
+        client.loop.create_task(league_champion_embed_data_get(data,parti,DATABASE,parti['summonerName'], gateway, channel,parti['championId'],colour=discord.Colour.red() if parti['team'] == 'red' else discord.Colour.blue(),queue=queue,api_stack=api_stack))
 
 async def send_long_message(message, channel):
     buffer = ''
@@ -142,7 +142,7 @@ async def send_long_message(message, channel):
             buffer+=f'\n{line}'
         else:
             await channel.send(buffer)
-            buffer = ''
+            buffer = line
     if buffer != '':
         await channel.send(buffer)
 
@@ -151,12 +151,24 @@ async def league_user_champions(baseurl,DATABASE,channel,username,gateway,queue 
     data = await riotuser.get_all_champions()
     data = sorted(data,key=lambda champ:(champ['championLevel'],champ['championPoints']),reverse=True)
     def format_champ(champ):
-        link = f"{baseurl}/lolchampion/{username}/{gateway}/{20}/{champ['championId']}/{channel.id}"
+        link = f"{baseurl}/lolchampion/{urllib.parse.quote_plus(username)}/{gateway}/{20}/{champ['championId']}/{channel.id}"
         return f"{GLOBALS.STATICDATA['CHAMPIONS'][champ['championId']]['name']}\tLvl. {champ['championLevel']}\t{champ['championPoints']}\t{link}"
     msg = '\n'.join(map(format_champ,data[:(min(len(data),queue))]))
     await send_long_message(msg,channel)
 
-async def league_livegame_embed_data_get__update_parti(parti,queue=5, api_stack = 5):
+async def relation_livegame(data, parti):
+    good, bad = [],[]
+    for partiD in data:
+        if partiD['teamId'] != parti['teamId']:
+            if (info := await RiotDataMine.RiotUser.get_champion_relation_compare(GLOBALS.DATABASE,parti['championId'],partiD['championId'])) is not None:
+                if info < 50:
+                    good.append((partiD['championId'],info))
+                elif info > 50:
+                    bad.append((partiD['championId'],info))
+    return good, bad
+
+
+async def league_livegame_embed_data_get__update_parti(data,fullparti,parti,queue=5, api_stack = 5):
     neverplayed = False
     try:
         parti['champ_info'] = await parti['riotuser'].get_champion_info(parti['championId'])
@@ -179,6 +191,14 @@ async def league_livegame_embed_data_get__update_parti(parti,queue=5, api_stack 
     parti['embed'].add_field(name='Vision Score:',value='Waiting...')
     parti['embed'].add_field(name='CS Distribution:',value='Waiting...')
     parti['embed'].add_field(name='MultiKills:',value='Waiting...')
+    if data is not None and fullparti is not None:
+        goodagainst, badagaints = await relation_livegame(data,fullparti)
+        bad = '\n'.join(map(lambda code:f"{GLOBALS.STATICDATA['CHAMPIONS'][code[0]]['name']} - {code[1]:.2f}%",badagaints))
+        good = '\n'.join(map(lambda code:f"{GLOBALS.STATICDATA['CHAMPIONS'][code[0]]['name']} - {code[1]:.2f}%",goodagainst))
+        if len(bad) > 0:
+            parti['embed'].add_field(name='Vulnerable against:',value=bad)
+        if len(good) > 0:
+            parti['embed'].add_field(name='A threat to:',value=good)
     async for special_stats, type_req in calculate_stats_from_matches_special_v2(parti['riotuser'],queue=queue,champion=parti['championId'],api_stack=api_stack):
         special_stats = await motify_special_match_stats(special_stats)
         parti['embed'].set_field_at(0,name='Collecting Data:',value=f'{special_stats["gamescount"]}/{min(queue,special_stats["totalgames"])} - {type_req}')

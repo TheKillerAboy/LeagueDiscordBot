@@ -28,6 +28,13 @@ def init_riotwatcher(DATABASE):
         dummy[int(champ['key'])] = champ
         dummy[champ['lower-name']] = champ
     STATICDATA['CHAMPIONS'].update(dummy)
+    STATICDATA['SUMMONER_SPELLS'] = RIOTWATCHER.data_dragon.summoner_spells(STATICDATA['VERSION'])['data']
+    dummy = {}
+    for spellId, spell in STATICDATA['SUMMONER_SPELLS'].items():
+        spell['lower-name'] = lowerplus(spell['name'])
+        dummy[int(spell['key'])] = spell
+        dummy[spell['lower-name']] = spell
+    STATICDATA['SUMMONER_SPELLS'].update(dummy)
 
 def lowerplus(str):
     return str.lower().replace(' ','').replace("'",'').replace('&','').replace('.','').replace('-','')

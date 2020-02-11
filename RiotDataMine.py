@@ -54,14 +54,16 @@ class RiotUser:
 
         self.userObj['gateway'] = self.gateway_parse(gateway)
 
-    async def _livegame_get_livegame_info(self):
+    async def _livegame_get_livegame_info(self,loop = None):
         try:
-            data = await self.run_command_riotwatcher(GLOBALS.RIOTWATCHER.spectator.by_summoner,self.userObj['gateway'],self.userObj['id'])
+            data = await self.run_command_riotwatcher(GLOBALS.RIOTWATCHER.spectator.by_summoner,self.userObj['gateway'],self.userObj['id'], loop=loop)
             outdata = data['participants']
-            for parti in outdata:
+            for i,parti in enumerate(outdata):
                 parti['team'] = self.teamId_to_team(parti['teamId'])
+                parti['id'] = i
             return outdata
         except Exception as e:
+            print(e)
             return None
 
     async def livegame_info_all(self):
@@ -71,10 +73,12 @@ class RiotUser:
         return await self.run_command_riotwatcher(GLOBALS.RIOTWATCHER.champion_mastery.by_summoner_by_champion,self.userObj['gateway'],self.userObj['id'],championId)
 
     @staticmethod
-    async def run_command_riotwatcher(func,*args,**kwargs):
+    async def run_command_riotwatcher(func,*args,loop=None,**kwargs):
         while True:
             try:
-                return await GLOBALS.client.loop.run_in_executor(None,functools.partial(func,**kwargs),*args)
+                if loop is None:
+                    loop = GLOBALS.client.loop
+                return await loop.run_in_executor(None,functools.partial(func,**kwargs),*args)
             except ApiError as err:
                 if err.response.status_code == 429:
                     print('Rate Limit Exceeded')
@@ -143,14 +147,18 @@ class RiotUser:
             yield await self.get_match_details_v2_api_call(matchId), "API Call"
 
     async def lolwasted(self):
-        req = await self.run_command_riotwatcher(requests.get,f"https://wol.gg/stats/{self.userObj['gateway'].lower()}/{self.userObj['name'].lower()}/")
+        req = await self.run_command_riotwatcher(requests.get,f"https://wol.gg/stats/{self.userObj['gateway'].lower()}/{self.userObj['name'].lower().replace(' ','')}/")
         soup = BeautifulSoup(req.content,"html.parser")
         p = soup.find('div',id='time-hours').find('p')
-        return int([x for x in p if isinstance(x,NavigableString)][0])
+        return int([x for x in p if isinstance(x,NavigableString)][0].replace(',',''))
 
     @staticmethod
     async def mine_champion_relation(DATABASE,championId):
-        GLOBALS.chromeDriver.get(f"https://www.counterstats.net/league-of-legends/{GLOBALS.STATICDATA['CHAMPIONS'][championId]['lower-name']}")
+        def special_lower(str):
+            return str.lower().replace(' & ','-').replace(' ','-').replace("'",'').replace('.','')
+        GLOBALS.chromeDriver.get(f"https://www.counterstats.net/league-of-legends/{special_lower(GLOBALS.STATICDATA['CHAMPIONS'][championId]['name'])}")
+        if GLOBALS.chromeDriver.execute_script("return $('.load-more.ALL').length") == 0:
+            print(f"{GLOBALS.STATICDATA['CHAMPIONS'][championId]['name']} - data collection problem")
         for i in range(40):
             GLOBALS.chromeDriver.execute_script('$(".load-more.ALL").click()')
         await asyncio.sleep(.5)
@@ -196,5 +204,20 @@ class RiotUser:
             yield champId, perc
     @staticmethod
     async def get_champion_weak(DATABASE,championId, pos = 'all'):
-        for champId, perc in DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE percentage > 50 ORDER BY percentage DESC").fetchall():
-            yield champId, perc
+            for champId, perc in DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE percentage > 50 ORDER BY percentage DESC").fetchall():
+                yield champId, perc
+    @staticmethod
+    async def get_champion_relation_compare(DATABASE,championId, championId2, pos = 'all'):
+        out = [50,50]
+        try:
+            out[0] = DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE champId={championId2}").fetchone()[1]
+        except:
+            pass
+        try:
+            out[1] = DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId2}_{pos.upper()} WHERE champId={championId}").fetchone()[1]
+        except:
+            pass
+        return (out[0]+100-out[1])/2
+    @staticmethod
+    async def get_champion_relation_compare_group(DATABASE,championId, championIds, pos = 'all'):
+        return map(lambda k:k[0],DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE percentage > 50 AND champId IN ({', '.join(map(str,championIds))})").fetchall())

@@ -6,3 +6,5 @@ import admincommands
 def update_api_key(data):
     admincommands.update_api_key(data)
     GLOBALS.RIOTWATCHER = riotwatcher.RiotWatcher(data)
+
+# @GLOBALS.socketio.on('update')
