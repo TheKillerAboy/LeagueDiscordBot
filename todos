@@ -1,0 +1,2 @@
+-- centralize DATABASE object to GLOBAL(remove as required parameter)
+-- give a new access point for DATABASE to make it thread save

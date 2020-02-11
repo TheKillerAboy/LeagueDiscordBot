@@ -4,131 +4,23 @@ import importlib
 import liveCommands
 import functools
 from threading import Thread
-from GLOBALS import *
-from socketio_stuff import *
+import GLOBALS
+from utils import meyCryptography
+import SECRETS.secrets as secrets
 
 def reload_method():
     def wrapper(func):
         @functools.wraps(func)
         async def method(*args,**kwargs):
             reload(liveCommands)
-            await getattr(liveCommands, func.__name__)(DATABASE,client,*args,**kwargs)
+            await getattr(liveCommands, func.__name__)(GLOBALS.client,*args,**kwargs)
         wrapper.__name__ = func.__name__
         return method
     return wrapper
 
-@client.command(pass_context=True)
-@reload_method()
-async def lolsetinfo(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolhelp(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolprofile(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolprofilefull(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolprofileplus(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lollivematch(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lollivematchplus(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampion(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionfull(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionplus(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def deletemessages(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolmonitor(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolwasted(ctx):
-    pass
-
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampions(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionsplus(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionsfull(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionweak(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionstrong(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionweakpos(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolchampionstrongpos(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolminerelationdata(ctx):
-    pass
-@client.command(pass_context=True)
-@reload_method()
-async def lolminerelationdatasingle(ctx):
-    pass
-
 async def data_mine_all_relation_regualar():
     while True:
         liveCommands.lol
-
-@client.event
-async def on_ready():
-    print('Logged in as')
-    print(client.user.name)
-    print(client.user.id)
-    print('------')
 
 def import_module_all(module):
     mdl = importlib.import_module(module)
@@ -148,10 +40,131 @@ def import_all_routes():
             import_module_all(f'routes.{file}')
 
 def flask_server_setup():
-    socketio.run(app,**{"host":"192.168.2.12","port":8445})
+    # GLOBALS.socketio.run(GLOBALS.app,**{"host":"192.168.2.12","port":8445})
+    GLOBALS.app.run()
 
+password = input("Password: ")
+
+if not meyCryptography.is_correct_password(password, secrets.get_secret('password')):
+    print("incorrect Password")
+    exit()
+
+discord_token = meyCryptography.decrypt(password,secrets.get_secret('discord_token'))
+riot_api_key = meyCryptography.decrypt(password,secrets.get_secret('riot_api_key'))
+
+
+GLOBALS.main(riot_api_key)
 import_all_routes()
-
 appthread = Thread(target=flask_server_setup)
 appthread.start()
-client.run(TOKEN)
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolsetinfo(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolhelp(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolprofile(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolprofilefull(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolprofileplus(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lollivematch(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lollivematchplus(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampion(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionfull(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionplus(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def deletemessages(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolmonitor(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolwasted(ctx):
+    pass
+
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampions(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionsplus(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionsfull(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionweak(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionstrong(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionweakpos(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolchampionstrongpos(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolminerelationdata(ctx):
+    pass
+@GLOBALS.client.command(pass_context=True)
+@reload_method()
+async def lolminerelationdatasingle(ctx):
+    pass
+
+@GLOBALS.client.event
+async def on_ready():
+    print('Logged in as')
+    print(GLOBALS.client.user.name)
+    print(GLOBALS.client.user.id)
+    print('------')
+
+GLOBALS.client.run(discord_token)
