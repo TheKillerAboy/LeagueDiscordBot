@@ -1,8 +1,8 @@
 from discord.ext import commands, tasks
-import sqlite3
 from flask import Flask
 from flask_socketio import SocketIO
 import riotwatcher
+from database import Database
 
 RIOTWATCHER = None
 STATICDATA = None
@@ -41,5 +41,5 @@ def main(riot_api_key):
     app.config['SECRET_KEY'] = 'secret!'
     socketio = SocketIO(app)
     client = commands.Bot(command_prefix='.')
-    DATABASE = sqlite3.connect('CONFIG.db')
+    DATABASE = Database('CONFIG.db')
     init_riotwatcher(riot_api_key)

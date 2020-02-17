@@ -5,28 +5,11 @@ import SECRETS.secrets as secrets
 
 def num_of_stored_matches():
     DATABASE = Database('CONFIG.db')
-    total = 0
-    for accountId, time in DATABASE.execute("SELECT * FROM LEAGUE_USERS").fetchall():
-        total += len(DATABASE.execute(f"SELECT * FROM LEAGUE_USER_{accountId}").fetchall())
-    return total
+    return DATABASE.execute('SELECT count(*) FROM LEAGUE_MATCHES_TEMP').fetchone()[0]
 
 def num_of_stored_accounts():
     DATABASE = Database('CONFIG.db')
-    return len(DATABASE.execute("SELECT * FROM LEAGUE_USERS").fetchall())
-
-def delete_duplicates(table_name):
-    DATABASE = Database('CONFIG.db')
-    all = set(DATABASE.execute(f"SELECT * FROM {table_name}").fetchall())
-    DATABASE.execute(f"DELETE FROM {table_name}")
-    def strk(val):
-        if type(val) is str:
-            return f'"{val}"'
-        else:
-            return val
-    for data in all:
-        DATABASE.execute(f"INSERT INTO {table_name} VALUES ({', '.join(map(strk,data))})")
-    DATABASE.commit()
-    DATABASE.close()
+    return DATABASE.execute('SELECT count(distinct(accountId)) FROM LEAGUE_MATCHES_TEMP').fetchone()[0]
 
 def update_riot_api_key(password,api_key):
     secrets.set_secret('riot_api_key',crypt.encrypt(password,api_key))

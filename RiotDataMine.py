@@ -13,7 +13,7 @@ def timestamp_to_time(timestamp):
 
 class RiotUser:
     STORED_MATCH_DATA = \
-        ["matchId", "participantId", "win", "item0", "item1", "item2", "item3",
+        ["accountId","matchId", "participantId", "win", "item0", "item1", "item2", "item3",
         "item4", "item5", "item6", "kills", "deaths", "assists", "largestKillingSpree",
         "largestMultiKill", "killingSprees", "longestTimeSpentLiving", "doubleKills", "tripleKills",
         "quadraKills", "pentaKills", "unrealKills", "totalDamageDealt", "magicDamageDealt",
@@ -43,14 +43,15 @@ class RiotUser:
     def teamId_to_team(teamId):
         return 'blue' if teamId == 100 else 'red'
 
-    def __init__(self,DATABASE, username, gateway):
+    def __init__(self,username, gateway):
         self.userObj = GLOBALS.RIOTWATCHER.summoner.by_name(self.gateway_parse(gateway),username)
         self.userObj['accountIdA'] = self.userObj['accountId'].replace('-','_')
-        self.DATABASE = DATABASE
-        if len(DATABASE.execute(f"SELECT * FROM LEAGUE_USERS WHERE accountId = '{self.userObj['accountIdA']}'").fetchall()) == 0:
-            DATABASE.execute(f"INSERT INTO LEAGUE_USERS VALUES ('{self.userObj['accountIdA']}',0)")
-            DATABASE.execute(f"CREATE TABLE LEAGUE_USER_{self.userObj['accountIdA']} ({', '.join(self.STORED_MATCH_DATA)})")
-            DATABASE.commit()
+        self.DATABASE = GLOBALS.DATABASE
+        # if len(DATABASE.execute(f"SELECT * FROM LEAGUE_USERS WHERE accountId = ''{self.userObj['accountIdA']}''").fetchall()) == 0:
+        #     DATABASE.execute(f"INSERT INTO LEAGUE_USERS VALUES (''{self.userObj['accountIdA']}'',0)")
+        #     DATABASE.execute(f"CREATE TABLE LEAGUE_USER_'{self.userObj['accountIdA']}' ({', '.join(self.STORED_MATCH_DATA)})")
+        #     DATABASE.commit()
+
 
         self.userObj['gateway'] = self.gateway_parse(gateway)
 
@@ -119,7 +120,7 @@ class RiotUser:
                 break
         for parti in data['participants']:
             if parti['participantId'] == partiId:
-                stats = {**parti['stats'], 'championId': parti['championId'], 'matchId': matchId}
+                stats = {**parti['stats'], 'championId': parti['championId'], 'matchId': matchId, 'accountId':self.userObj['accountIdA']}
                 store = []
                 for key in self.STORED_MATCH_DATA:
                     try:
@@ -127,7 +128,8 @@ class RiotUser:
                     except:
                         store.append('')
                 storeStr = ', '.join([f'"{store[i]}"' for i in range(len(self.STORED_MATCH_DATA))])
-                self.DATABASE.execute(f"INSERT INTO LEAGUE_USER_{self.userObj['accountIdA']} VALUES ({storeStr})")
+                # self.DATABASE.execute(f"INSERT INTO LEAGUE_USER_'{self.userObj['accountIdA']}' VALUES ({storeStr})")
+                self.DATABASE.execute(f"INSERT INTO LEAGUE_MATCHES VALUES ({storeStr})")
                 self.DATABASE.commit()
                 return stats
 
@@ -135,14 +137,15 @@ class RiotUser:
         matchId_set = matchId_set.copy()
         def str_qu(val):
             return f'"{val}"'
-        data = self.DATABASE.execute(
-            f"SELECT * FROM LEAGUE_USER_{self.userObj['accountIdA']} WHERE matchId IN ({', '.join(map(str_qu,matchId_set))})").fetchall()
+        # data = self.DATABASE.execute(
+        #     f"SELECT * FROM LEAGUE_USER_'{self.userObj['accountIdA']}' WHERE matchId IN ({', '.join(map(str_qu,matchId_set))})").fetchall()
+        data = self.DATABASE.execute(f"SELECT * FROM LEAGUE_MATCHES WHERE accountId = '{self.userObj['accountIdA']}' AND matchId IN ({', '.join(map(str_qu,matchId_set))})").fetchall()
         for match in map(self.tuple_to_dict_match_data,data):
             try:
                 matchId_set.remove(int(match['matchId']))
                 yield match, "Stored Match"
             except:
-                self.DATABASE.execute(f"DELETE FROM LEAGUE_USER_{self.userObj['accountIdA']} WHERE matchId = {str_qu(match['matchId'])}")
+                self.DATABASE.execute(f"DELETE FROM LEAGUE_MATCHES WHERE accountId = '{self.userObj['accountIdA']}' AND matchId = {str_qu(match['matchId'])}")
         for matchId in matchId_set:
             yield await self.get_match_details_v2_api_call(matchId), "API Call"
 
@@ -153,7 +156,7 @@ class RiotUser:
         return int([x for x in p if isinstance(x,NavigableString)][0].replace(',',''))
 
     @staticmethod
-    async def mine_champion_relation(DATABASE,championId):
+    async def mine_champion_relation(championId):
         def special_lower(str):
             return str.lower().replace(' & ','-').replace(' ','-').replace("'",'').replace('.','')
         GLOBALS.chromeDriver.get(f"https://www.counterstats.net/league-of-legends/{special_lower(GLOBALS.STATICDATA['CHAMPIONS'][championId]['name'])}")
@@ -167,57 +170,80 @@ class RiotUser:
             champ = GLOBALS.lowerplus(src[src.rindex('/')+1:src.rindex('.')])
             return int(GLOBALS.STATICDATA['CHAMPIONS'][champ]['key'])
         all = {}
-        def create_and_or_create_table(DATABASE, table):
-            if (len(DATABASE.execute(
-                    f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}';").fetchall()) == 0):
-                DATABASE.execute(
-                    f"CREATE TABLE {table} (champId,percentage);")
-            else:
-                DATABASE.execute(
-                    f"DELETE FROM {table}")
-            DATABASE.commit()
         for datablock in soup.find_all('div',class_='champ-box__wrap'):
             src = datablock.find('img')['src']
             lane = src[src.rindex('-') + 1:src.rindex('.')].upper()
-            create_and_or_create_table(DATABASE,f"CHAMPION_RELATION_{championId}_{lane}")
             for champblock in datablock.find('div',class_='champ-box ALL').find_all('a'):
                 if champblock.has_attr('class'):
                     if 'radial-progress' in champblock['class']:
                         champId, perc = image_link_to_champId(champblock.find('img')['src']), float(champblock.find('span',class_='percentage').string.replace('%',''))
                     elif 'champ-box__row' in champblock['class']:
                         champId, perc = image_link_to_champId(champblock.find('img')['src']), float(champblock.find('span').string.replace('%',''))
-                    DATABASE.execute(f"INSERT INTO CHAMPION_RELATION_{championId}_{lane} VALUES ({champId},{perc})")
+                    c1, c2 = tuple(sorted([championId,champId]))
+                    _12,_21 = 50,50
+                    for a, b in GLOBALS.DATABASE.execute(f"SELECT _12, _21 FROM CHAMPION_RELATIONS WHERE champ1 = {c1} and champ2 = {c2} and lane = '{lane}'"):
+                        _12,_21 = a,b
+                    if c1 == champId:
+                        _12 = perc
+                    else:
+                        _21 = perc
+                    if GLOBALS.DATABASE.execute(f"SELECT count(*)  FROM CHAMPION_RELATIONS WHERE champ1 = {c1} and champ2 = {c2} and lane = '{lane}'").fetchone()[0] > 0:
+                        GLOBALS.DATABASE.execute(f"DELETE FROM CHAMPION_RELATIONS WHERE champ1 = {c1} and champ2 = {c2} and lane = '{lane}'")
+                    GLOBALS.DATABASE.execute(f"INSERT INTO CHAMPION_RELATIONS VALUES ({c1},{c2},'{lane}',{_12},{_21})")
                     if champId not in all:
                         all[champId] = []
                     all[champId].append(perc)
-            DATABASE.commit()
+            GLOBALS.DATABASE.commit()
             await asyncio.sleep(.5)
         for key in all:
             all[key] = sum(all[key])/len(all[key])
-        create_and_or_create_table(DATABASE,f"CHAMPION_RELATION_{championId}_ALL")
         for champId, perc in all.items():
-            DATABASE.execute(f"INSERT INTO CHAMPION_RELATION_{championId}_ALL VALUES ({champId},{perc})")
+            c1, c2 = tuple(sorted([championId, champId]))
+            _12, _21 = 50, 50
+            for a, b in DATABASE.execute(
+                    f"SELECT _12, _21   FROM  CHAMPION_RELATIONS WHERE champ1 = {c1} and champ2 = {c2} and lane = 'ALL'"):
+                _12, _21 = a, b
+            if c1 == champId:
+                _12 = perc
+            else:
+                _21 = perc
+            if DATABASE.execute(
+                    f"SELECT count(*)   FROM CHAMPION_RELATIONS WHERE champ1 = {c1} and champ2 = {c2} and lane = 'ALL'").fetchone()[
+                0] > 0:
+                DATABASE.execute(f"DELETE FROM CHAMPION_RELATIONS WHERE champ1 = {c1} and champ2 = {c2} and lane = 'ALL'")
+            DATABASE.execute(f"INSERT INTO CHAMPION_RELATIONS VALUES ({c1},{c2},'ALL',{_12},{_21})")
         DATABASE.commit()
     @staticmethod
-    async def get_champion_strong(DATABASE,championId, pos = 'all'):
-        for champId, perc in DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE percentage < 50 ORDER BY percentage").fetchall():
-            yield champId, perc
+    async def get_champion_strong(championId, pos = 'all'):
+        info = []
+        for champId, perc in GLOBALS.DATABASE.execute(
+                f"SELECT champ2, (_12+100-_21)/2 FROM CHAMPION_RELATIONS WHERE champ1 = {championId}  and (_12+100-_21)/2 > 50 and lane = '{pos.upper()}' ORDER BY (_12+100-_21)/2 DESC"):
+            info.append((champId,perc))
+        for champId, perc in GLOBALS.DATABASE.execute(
+                f"SELECT champ1, (_21+100-_12)/2 FROM CHAMPION_RELATIONS WHERE champ2 = {championId}  and (_21+100-_12)/2 > 50 and lane = '{pos.upper()}' ORDER BY (_21+100-_12)/2 DESC"):
+            info.append((champId,perc))
+        info = sorted(info, key=lambda k:k[1],reverse=True)
+        for data in info:
+            yield tuple(data)
     @staticmethod
-    async def get_champion_weak(DATABASE,championId, pos = 'all'):
-            for champId, perc in DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE percentage > 50 ORDER BY percentage DESC").fetchall():
-                yield champId, perc
+    async def get_champion_weak(championId, pos = 'all'):
+        info = []
+        for champId, perc in GLOBALS.DATABASE.execute(f"SELECT champ2, (_12+100-_21)/2 FROM CHAMPION_RELATIONS WHERE champ1 = {championId}  and (_12+100-_21)/2 < 50 and lane = '{pos.upper()}' ORDER BY (_12+100-_21)/2"):
+            info.append((champId,perc))
+        for champId, perc in GLOBALS.DATABASE.execute(f"SELECT champ1, (_21+100-_12)/2 FROM CHAMPION_RELATIONS WHERE champ2 = {championId}  and (_21+100-_12)/2 < 50 and lane = '{pos.upper()}' ORDER BY (_21+100-_12)/2"):
+            info.append((champId,perc))
+        info = sorted(info, key=lambda k:k[1])
+        for data in info:
+            yield tuple(data)
     @staticmethod
-    async def get_champion_relation_compare(DATABASE,championId, championId2, pos = 'all'):
+    async def get_champion_relation_compare(championId, championId2, pos = 'all'):
         out = [50,50]
         try:
-            out[0] = DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE champId={championId2}").fetchone()[1]
-        except:
+            out = list(GLOBALS.DATABASE.execute(f"SELECT _12, _21 FROM CHAMPION_RELATIONS WHERE champ2 = {championId2} and champ1 = {championId} and lane = '{pos.upper()}'").fetchone())
+        except Exception as e:
             pass
         try:
-            out[1] = DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId2}_{pos.upper()} WHERE champId={championId}").fetchone()[1]
-        except:
+            out = list(GLOBALS.DATABASE.execute(f"SELECT _21, _12 FROM CHAMPION_RELATIONS WHERE champ1 = {championId2} and champ2 = {championId} and lane = '{pos.upper()}'").fetchone())
+        except Exception as e:
             pass
-        return (out[0]+100-out[1])/2
-    @staticmethod
-    async def get_champion_relation_compare_group(DATABASE,championId, championIds, pos = 'all'):
-        return map(lambda k:k[0],DATABASE.execute(f"SELECT * FROM CHAMPION_RELATION_{championId}_{pos.upper()} WHERE percentage > 50 AND champId IN ({', '.join(map(str,championIds))})").fetchall())
+        return (out[1]+100-out[0])/2

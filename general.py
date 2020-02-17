@@ -53,11 +53,11 @@ def parse_league_user_discord(lolname):
         return tuple(lolname.split('#'))
     return lolname, "EUW1"
 
-async def get_userinfo(DATABASE,client,channel, message, args):
+async def get_userinfo(client,channel, message, args):
     args = list(args)
     if len(args) == 0:
         user_author = message.author
-        fetch = DATABASE.execute(f'SELECT * FROM USERS WHERE Author = "{user_author}"').fetchone()
+        fetch = GLOBALS.DATABASE.execute(f'SELECT * FROM USERS WHERE Author = "{user_author}"').fetchone()
         try:
             lolname = fetch[1]
             gateway = fetch[2]
@@ -67,7 +67,7 @@ async def get_userinfo(DATABASE,client,channel, message, args):
     else:
         if len(message.mentions) != 0:
             user_author = client.get_user(message.mentions[0].id)
-            fetch = DATABASE.execute(f'SELECT * FROM USERS WHERE Author = "{user_author}"').fetchone()
+            fetch = GLOBALS.DATABASE.execute(f'SELECT * FROM USERS WHERE Author = "{user_author}"').fetchone()
             try:
                 lolname = fetch[1]
                 gateway = fetch[2]
@@ -86,8 +86,8 @@ async def basic_league_user_embed(riotuser, colour = discord.Colour.light_grey()
         url=f"http://ddragon.leagueoflegends.com/cdn/10.2.1/img/profileicon/{riotuser.userObj['profileIconId']}.png")
     return embed
 
-async def league_player_embed_data_get(DATABASE,username, gateway, channel, queue = 20, colour = discord.Colour.light_grey()):
-    riotuser = RiotDataMine.RiotUser(DATABASE, username, gateway)
+async def league_player_embed_data_get(username, gateway, channel, queue = 20, colour = discord.Colour.light_grey()):
+    riotuser = RiotDataMine.RiotUser(username, gateway)
     embed = await basic_league_user_embed(riotuser,colour=colour)
     message = await channel.send(embed=embed)
     embed.add_field(name='Collecting Data:',value=f'{0}/{queue}')
@@ -114,9 +114,9 @@ async def league_player_embed_data_get(DATABASE,username, gateway, channel, queu
     embed.remove_field(0)
     await message.edit(embed=embed)
 
-async def league_champion_embed_data_get(data,fullparti,DATABASE,username, gateway, channel,championId, colour = discord.Colour.light_grey(), queue = 20, api_stack = 5):
+async def league_champion_embed_data_get(data,fullparti,username, gateway, channel,championId, colour = discord.Colour.light_grey(), queue = 20, api_stack = 5):
     parti = {'summonerName':username}
-    parti['riotuser'] = RiotDataMine.RiotUser(DATABASE, parti['summonerName'], gateway)
+    parti['riotuser'] = RiotDataMine.RiotUser( parti['summonerName'], gateway)
     parti['championId'] = championId
     parti['description'] = f"{gateway.upper()}\nLvl. {parti['riotuser'].userObj['summonerLevel']}\n{await parti['riotuser'].lolwasted()} Hours Wasted\n\n{GLOBALS.STATICDATA['CHAMPIONS'][parti['championId']]['name']}"
     parti['embed'] = discord.Embed(title=parti['summonerName'],
@@ -126,14 +126,14 @@ async def league_champion_embed_data_get(data,fullparti,DATABASE,username, gatew
     parti['message'] = await channel.send(embed=parti['embed'])
     await league_livegame_embed_data_get__update_parti(data,fullparti,parti, queue=queue,api_stack=api_stack)
 
-async def league_livegame_embed_data_get(client,DATABASE,username, gateway, channel,queue = 20, api_stack = 5):
-    riotuser = RiotDataMine.RiotUser(DATABASE, username, gateway)
+async def league_livegame_embed_data_get(client,username, gateway, channel,queue = 20, api_stack = 5):
+    riotuser = RiotDataMine.RiotUser( username, gateway)
     data = await riotuser._livegame_get_livegame_info()
     if data == None:
         await channel.send(f'{username} | {gateway} isn\'t currently in a match')
         return
     for parti in data:
-        client.loop.create_task(league_champion_embed_data_get(data,parti,DATABASE,parti['summonerName'], gateway, channel,parti['championId'],colour=discord.Colour.red() if parti['team'] == 'red' else discord.Colour.blue(),queue=queue,api_stack=api_stack))
+        client.loop.create_task(league_champion_embed_data_get(data,parti,parti['summonerName'], gateway, channel,parti['championId'],colour=discord.Colour.red() if parti['team'] == 'red' else discord.Colour.blue(),queue=queue,api_stack=api_stack))
 
 async def send_long_message(message, channel):
     buffer = ''
@@ -146,8 +146,8 @@ async def send_long_message(message, channel):
     if buffer != '':
         await channel.send(buffer)
 
-async def league_user_champions(baseurl,DATABASE,channel,username,gateway,queue = 10):
-    riotuser = RiotDataMine.RiotUser(DATABASE,username,gateway)
+async def league_user_champions(baseurl,channel,username,gateway,queue = 10):
+    riotuser = RiotDataMine.RiotUser(username,gateway)
     data = await riotuser.get_all_champions()
     data = sorted(data,key=lambda champ:(champ['championLevel'],champ['championPoints']),reverse=True)
     def format_champ(champ):
@@ -160,7 +160,7 @@ async def relation_livegame(data, parti):
     good, bad = [],[]
     for partiD in data:
         if partiD['teamId'] != parti['teamId']:
-            if (info := await RiotDataMine.RiotUser.get_champion_relation_compare(GLOBALS.DATABASE,parti['championId'],partiD['championId'])) is not None:
+            if (info := await RiotDataMine.RiotUser.get_champion_relation_compare(parti['championId'],partiD['championId'])) is not None:
                 if info < 50:
                     good.append((partiD['championId'],info))
                 elif info > 50:

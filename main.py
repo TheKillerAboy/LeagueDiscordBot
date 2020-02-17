@@ -6,6 +6,7 @@ import functools
 from threading import Thread
 import GLOBALS
 from utils import meyCryptography
+
 import SECRETS.secrets as secrets
 
 def reload_method():
@@ -17,10 +18,6 @@ def reload_method():
         wrapper.__name__ = func.__name__
         return method
     return wrapper
-
-async def data_mine_all_relation_regualar():
-    while True:
-        liveCommands.lol
 
 def import_module_all(module):
     mdl = importlib.import_module(module)

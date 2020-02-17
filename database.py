@@ -6,8 +6,7 @@ def instance_exists(func):
     def wraper(self, *args, **kwargs):
         if threading.get_ident() not in self.instances:
             self.instances[threading.get_ident()] = sqlite3.connect(self.file)
-        func(self, self.instances[threading.get_ident()], *args, **kwargs)
-
+        return func(self, self.instances[threading.get_ident()], *args, **kwargs)
     return wraper
 
 class Database:
